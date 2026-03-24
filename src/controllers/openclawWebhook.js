@@ -386,8 +386,16 @@ router.post('/delegate', async (req, res) => {
     try {
       orchestrationEngine.startTask(task.taskId);
       mainLogger.info(`任务已自动启动：${task.taskId}`);
+      // 启动后立即推送 agent 状态更新（通过 onTaskExecute 回调）
     } catch (err) {
       mainLogger.info(`任务等待执行：${err.message}`);
+      // 即使等待执行，也要更新 agent 状态
+      const agent = agentStore.get(selectedAgent);
+      if (agent) {
+        agent.status = 'busy';
+        agent.currentTaskId = task.taskId;
+        wss.sendAgentUpdate(agent);
+      }
     }
 
     // 记录日志
