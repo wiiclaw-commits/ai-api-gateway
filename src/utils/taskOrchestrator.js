@@ -267,9 +267,10 @@ class TaskQueueManager {
  * 任务编排引擎
  */
 class TaskOrchestrationEngine {
-  constructor(taskStore, wss) {
+  constructor(taskStore, wss, agentStore) {
     this.taskStore = taskStore; // 任务存储
     this.wss = wss; // WebSocket 服务器
+    this.agentStore = agentStore || null; // Agent 存储
     this.dependencyGraph = new TaskDependencyGraph();
     this.queueManager = new TaskQueueManager({ maxConcurrent: 3 });
     this.setupQueueHandlers();
@@ -285,11 +286,15 @@ class TaskOrchestrationEngine {
       task.startedAt = Date.now();
 
       // 更新 Agent 状态
-      if (task.assignedTo) {
-        const agent = this.taskStore.get(`agent:${task.assignedTo}`);
+      if (task.assignedTo && this.agentStore) {
+        const agent = this.agentStore.get(task.assignedTo);
         if (agent) {
           agent.status = 'busy';
           agent.currentTaskId = task.taskId;
+          // WebSocket 推送 Agent 状态更新
+          if (this.wss) {
+            this.wss.sendAgentUpdate(agent);
+          }
         }
       }
 
@@ -301,13 +306,17 @@ class TaskOrchestrationEngine {
 
     this.queueManager.setOnTaskComplete(async (task) => {
       // 更新 Agent 状态
-      if (task.assignedTo) {
-        const agent = this.taskStore.get(`agent:${task.assignedTo}`);
+      if (task.assignedTo && this.agentStore) {
+        const agent = this.agentStore.get(task.assignedTo);
         if (agent) {
           agent.status = 'idle';
           agent.currentTaskId = null;
           agent.stats = agent.stats || {};
           agent.stats.tasksCompleted = (agent.stats.tasksCompleted || 0) + 1;
+          // WebSocket 推送 Agent 状态更新
+          if (this.wss) {
+            this.wss.sendAgentUpdate(agent);
+          }
         }
       }
 
@@ -317,22 +326,22 @@ class TaskOrchestrationEngine {
       // WebSocket 推送
       if (this.wss) {
         this.wss.sendTaskUpdate(task);
-        if (task.assignedTo) {
-          const agent = this.taskStore.get(`agent:${task.assignedTo}`);
-          if (agent) this.wss.sendAgentUpdate(agent);
-        }
       }
     });
 
     this.queueManager.setOnTaskFail(async (task) => {
       // 更新 Agent 状态
-      if (task.assignedTo) {
-        const agent = this.taskStore.get(`agent:${task.assignedTo}`);
+      if (task.assignedTo && this.agentStore) {
+        const agent = this.agentStore.get(task.assignedTo);
         if (agent) {
           agent.status = 'error';
           agent.currentTaskId = null;
           agent.stats = agent.stats || {};
           agent.stats.tasksFailed = (agent.stats.tasksFailed || 0) + 1;
+          // WebSocket 推送 Agent 状态更新
+          if (this.wss) {
+            this.wss.sendAgentUpdate(agent);
+          }
         }
       }
 
@@ -342,10 +351,6 @@ class TaskOrchestrationEngine {
       // WebSocket 推送
       if (this.wss) {
         this.wss.sendTaskUpdate(task);
-        if (task.assignedTo) {
-          const agent = this.taskStore.get(`agent:${task.assignedTo}`);
-          if (agent) this.wss.sendAgentUpdate(agent);
-        }
       }
     });
   }

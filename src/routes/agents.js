@@ -26,7 +26,7 @@ let orchestrationEngine = null;
 const getOrchestrationEngine = async () => {
   if (!orchestrationEngine) {
     const { wss } = await import('../index.js');
-    orchestrationEngine = new TaskOrchestrationEngine(inMemoryStore.tasks, wss);
+    orchestrationEngine = new TaskOrchestrationEngine(inMemoryStore.tasks, wss, inMemoryStore.agents);
   }
   return orchestrationEngine;
 };
@@ -118,8 +118,12 @@ defaultAgents.forEach(agent => {
   inMemoryStore.agents.set(agent.id, { ...agent });
 });
 
-// 启动 OpenClaw 同步循环（每 5 秒）
-startSyncLoop(inMemoryStore, 5000);
+// 启动 OpenClaw 同步循环（每 5 秒）- 延迟初始化以避免循环依赖
+const startAgentSync = async () => {
+  const { wss } = await import('../index.js');
+  startSyncLoop(inMemoryStore, wss, 5000);
+};
+startAgentSync();
 
 /**
  * GET /api/v1/agents

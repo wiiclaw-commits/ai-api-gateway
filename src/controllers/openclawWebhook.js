@@ -299,8 +299,10 @@ router.post('/delegate', async (req, res) => {
     const { wss } = await import('../index.js');
     // 使用 agents.js 中的 inMemoryStore 以保持一致性
     const agentsRouter = await import('../routes/agents.js');
-    const taskStore = agentsRouter.inMemoryStore?.tasks || new Map();
-    const orchestrationEngine = new TaskOrchestrationEngine(taskStore, wss);
+    const inMemoryStore = agentsRouter.inMemoryStore;
+    const taskStore = inMemoryStore?.tasks || new Map();
+    const agentStore = inMemoryStore?.agents || new Map();
+    const orchestrationEngine = new TaskOrchestrationEngine(taskStore, wss, agentStore);
 
     // 如果需要任务分解
     if (needsDecomposition) {
@@ -379,6 +381,14 @@ router.post('/delegate', async (req, res) => {
 
     // WebSocket 推送任务更新
     wss.sendTaskUpdate(task);
+
+    // 自动启动任务（Telegram 任务默认自动执行）
+    try {
+      orchestrationEngine.startTask(task.taskId);
+      mainLogger.info(`任务已自动启动：${task.taskId}`);
+    } catch (err) {
+      mainLogger.info(`任务等待执行：${err.message}`);
+    }
 
     // 记录日志
     logAgentMessage(selectedAgent, 'info', `收到 Telegram 任务：${message}`, {

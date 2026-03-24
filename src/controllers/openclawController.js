@@ -127,8 +127,17 @@ export const syncOpenClawAgents = async (localStore) => {
       const localAgent = localStore.agents.get(remoteAgent.id);
       if (localAgent) {
         // 保持本地状态，但标记为已连接
+        const previousRemote = localAgent.remote;
         localAgent.remote = true;
         localAgent.model = remoteAgent.model || localAgent.model;
+        // 如果之前未连接，现在连接了，设置为 idle
+        if (!previousRemote && localAgent.remote) {
+          localAgent.status = 'idle';
+        }
+        // 如果已连接，保持 idle 状态（OpenClaw agents 默认 idle）
+        if (localAgent.remote && localAgent.status === 'offline') {
+          localAgent.status = 'idle';
+        }
       }
     });
 
@@ -358,10 +367,16 @@ const extractResponseFromResult = (result) => {
 /**
  * 定期同步任务（每 10 秒）
  */
-export const startSyncLoop = async (localStore, intervalMs = 10000) => {
+export const startSyncLoop = async (localStore, wss, intervalMs = 10000) => {
   setInterval(async () => {
     try {
-      await syncOpenClawAgents(localStore);
+      const updated = await syncOpenClawAgents(localStore);
+      // 如果有更新，发送 WebSocket 通知
+      if (updated && wss) {
+        for (const agent of localStore.agents.values()) {
+          wss.sendAgentUpdate(agent);
+        }
+      }
     } catch (error) {
       logger.error('Sync loop error:', error.message);
     }
