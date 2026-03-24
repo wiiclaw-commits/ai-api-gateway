@@ -7,16 +7,30 @@ import winston from 'winston';
 
 const logger = winston.createLogger();
 
-// 数据库连接配置
-const poolConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '5432'),
-  database: process.env.DB_NAME || 'openclaw_dev',
-  user: process.env.DB_USER || 'openclaw',
-  password: process.env.DB_PASSWORD || '',
-  max: parseInt(process.env.DB_POOL_SIZE || '20'),
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+// 数据库连接配置（延迟初始化）
+let poolConfig = null;
+
+const getPoolConfig = () => {
+  if (!poolConfig) {
+    poolConfig = {
+      host: process.env.DB_HOST || 'localhost',
+      port: parseInt(process.env.DB_PORT || '5432'),
+      database: process.env.DB_NAME || 'openclaw_dev',
+      user: process.env.DB_USER || 'openclaw',
+      password: String(process.env.DB_PASSWORD || ''),
+      max: parseInt(process.env.DB_POOL_SIZE || '20'),
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 2000,
+    };
+    logger.info('Database pool config initialized', {
+      host: poolConfig.host,
+      port: poolConfig.port,
+      database: poolConfig.database,
+      user: poolConfig.user,
+      passwordSet: poolConfig.password.length > 0
+    });
+  }
+  return poolConfig;
 };
 
 // 创建连接池
@@ -27,7 +41,7 @@ let pool = null;
  */
 export const initDatabase = () => {
   try {
-    pool = new Pool(poolConfig);
+    pool = new Pool(getPoolConfig());
 
     pool.on('error', (err) => {
       logger.error('Unexpected database pool error:', err.message);

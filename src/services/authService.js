@@ -169,11 +169,12 @@ export const createUser = async (userData) => {
  * 用户登录
  */
 export const loginUser = async (email, password) => {
-  // 查找用户
-  const result = await query(
-    'SELECT id, email, password_hash, name, role, status FROM users WHERE email = $1',
-    [email]
-  );
+  try {
+    // 查找用户
+    const result = await query(
+      'SELECT id, email, password_hash, name, role, status FROM users WHERE email = $1',
+      [email]
+    );
 
   if (result.rows.length === 0) {
     throw new Error('Invalid email or password');
@@ -222,6 +223,10 @@ export const loginUser = async (email, password) => {
     token,
     expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
   };
+  } catch (error) {
+    console.error('Login failed:', error.message);
+    throw error;
+  }
 };
 
 /**
