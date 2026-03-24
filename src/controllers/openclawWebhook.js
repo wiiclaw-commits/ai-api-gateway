@@ -25,6 +25,8 @@ const TASK_AGENT_MAP = {
   'system-design': 'architect',
   'api-design': 'architect',
   'database-design': 'architect',
+  '架构': 'architect',
+  '设计': 'architect',
 
   // 前端开发类任务
   'frontend': 'frontend',
@@ -35,6 +37,11 @@ const TASK_AGENT_MAP = {
   'css': 'frontend',
   'html': 'frontend',
   'component': 'frontend',
+  '页面': 'frontend',
+  '界面': 'frontend',
+  '前端': 'frontend',
+  '登录页': 'frontend',
+  '登录页面': 'frontend',
 
   // 后端开发类任务
   'backend': 'backend',
@@ -46,6 +53,8 @@ const TASK_AGENT_MAP = {
   'model': 'backend',
   'service': 'backend',
   'controller': 'backend',
+  '后端': 'backend',
+  '接口': 'backend',
 
   // DevOps 类任务
   'devops': 'devops',
@@ -57,6 +66,8 @@ const TASK_AGENT_MAP = {
   'pipeline': 'devops',
   'infrastructure': 'devops',
   'cloud': 'devops',
+  '部署': 'devops',
+  '容器': 'devops',
 
   // 测试类任务
   'test': 'test',
@@ -66,6 +77,8 @@ const TASK_AGENT_MAP = {
   'e2e-test': 'test',
   'bug': 'test',
   'debug': 'test',
+  '测试': 'test',
+  '调试': 'test',
 
   // 运营类任务
   'ops': 'ops',
@@ -75,7 +88,9 @@ const TASK_AGENT_MAP = {
   'documentation': 'ops',
   'content': 'ops',
   'marketing': 'ops',
-  'seo': 'ops'
+  'seo': 'ops',
+  '文档': 'ops',
+  '运营': 'ops'
 };
 
 /**
@@ -103,12 +118,17 @@ const KEYWORD_TASK_TYPE_MAP = {
 
 /**
  * 分析任务描述，自动选择合适的 Agent
+ * 优先匹配更长的关键词（更具体）
  */
 function selectAgent(taskDescription, taskTitle) {
   const text = `${taskTitle} ${taskDescription}`.toLowerCase();
 
-  // 1. 首先尝试关键词匹配
-  for (const [keyword, agentId] of Object.entries(TASK_AGENT_MAP)) {
+  // 按关键词长度排序，优先匹配更长的关键词
+  const sortedKeywords = Object.entries(TASK_AGENT_MAP)
+    .sort((a, b) => b[0].length - a[0].length);
+
+  // 1. 首先尝试关键词匹配（按长度排序）
+  for (const [keyword, agentId] of sortedKeywords) {
     if (text.includes(keyword.toLowerCase())) {
       return agentId;
     }
