@@ -1,0 +1,36 @@
+{
+  "name": "api-gateway",
+  "version": "1.0.0",
+  "description": "AI API Gateway - Aggregates multiple AI providers",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test": "node --test src/**/*.test.js",
+    "db:init": "node src/database/init.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "helmet": "^7.1.0",
+    "ioredis": "^5.10.1",
+    "jsonwebtoken": "^9.0.3",
+    "pg": "^8.20.0",
+    "rate-limiter-flexible": "^5.0.0",
+    "uuid": "^9.0.0",
+    "winston": "^3.11.0",
+    "ws": "^8.20.0"
+  },
+  "keywords": [
+    "api",
+    "gateway",
+    "ai",
+    "openrouter"
+  ],
+  "author": "",
+  "license": "MIT"
+}
