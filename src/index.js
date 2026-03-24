@@ -8,6 +8,7 @@ import { router as chatRouter } from './routes/chat.js';
 import { router as modelsRouter } from './routes/models.js';
 import { router as authRouter } from './routes/auth.js';
 import { router as agentsRouter } from './routes/agents.js';
+import { router as openclawWebhookRouter } from './controllers/openclawWebhook.js';
 import { healthCheck } from './middleware/health.js';
 import { requireAuth } from './middleware/auth.js';
 import { WebSocketServerImpl } from './websocket/WebSocketServer.js';
@@ -55,6 +56,8 @@ app.get('/health', healthCheck);
 // Auth routes (不需要认证)
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/agents', agentsRouter);
+// OpenClaw Webhook (不需要认证，由 OpenClaw Gateway 调用)
+app.use('/api/v1/openclaw', openclawWebhookRouter);
 
 // API Routes (需要认证)
 app.use('/api/v1/chat', requireAuth, chatRouter);

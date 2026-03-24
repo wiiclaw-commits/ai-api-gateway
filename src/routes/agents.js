@@ -9,7 +9,7 @@ import * as agentMetrics from '../utils/agentMetrics.js';
 export const router = Router();
 
 // 内存存储（降级模式，不需要 Redis）
-const inMemoryStore = {
+export const inMemoryStore = {
   sessions: new Map(),
   agents: new Map(),
   tasks: new Map()
