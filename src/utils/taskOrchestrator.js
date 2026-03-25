@@ -141,15 +141,18 @@ class TaskDependencyGraph {
   }
 }
 
+import * as agentMetrics from './agentMetrics.js';
+
 /**
  * 任务队列管理器
  */
 class TaskQueueManager {
-  constructor(options = {}) {
+  constructor(options = {}, agentStore) {
     this.maxConcurrent = options.maxConcurrent || 3;
     this.queue = [];
     this.running = new Map(); // taskId -> task
     this.processing = false;
+    this.agentStore = agentStore || null;
   }
 
   /**
@@ -272,7 +275,7 @@ class TaskOrchestrationEngine {
     this.wss = wss; // WebSocket 服务器
     this.agentStore = agentStore || null; // Agent 存储
     this.dependencyGraph = new TaskDependencyGraph();
-    this.queueManager = new TaskQueueManager({ maxConcurrent: 3 });
+    this.queueManager = new TaskQueueManager({ maxConcurrent: 3 }, agentStore);
     this.setupQueueHandlers();
   }
 
@@ -284,6 +287,11 @@ class TaskOrchestrationEngine {
       // 开始执行任务
       task.status = 'running';
       task.startedAt = Date.now();
+
+      // 记录任务开始指标
+      if (task.assignedTo) {
+        agentMetrics.recordTaskStart(task.assignedTo, task.taskId);
+      }
 
       // 更新 Agent 状态
       if (task.assignedTo && this.agentStore) {
@@ -320,6 +328,12 @@ class TaskOrchestrationEngine {
         }
       }
 
+      // 记录任务完成指标
+      if (task.assignedTo) {
+        const tokensUsed = task.result?.usage?.totalTokens || 0;
+        agentMetrics.recordTaskComplete(task.assignedTo, task.taskId, tokensUsed);
+      }
+
       // 检查并触发依赖任务
       this.triggerDependentTasks(task.taskId);
 
@@ -343,6 +357,11 @@ class TaskOrchestrationEngine {
             this.wss.sendAgentUpdate(agent);
           }
         }
+      }
+
+      // 记录任务失败指标
+      if (task.assignedTo) {
+        agentMetrics.recordTaskFailed(task.assignedTo, task.taskId);
       }
 
       // 取消依赖该任务的所有任务

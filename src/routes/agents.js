@@ -619,6 +619,8 @@ router.post('/tasks/:id/action', async (req, res) => {
             agent.stats.tasksCompleted = (agent.stats.tasksCompleted || 0) + 1;
             wss.sendAgentUpdate(agent);
           }
+          // 记录任务完成指标
+          agentMetrics.recordTaskComplete(task.assignedTo, task.taskId, 0);
         }
         wss.sendTaskUpdate(task);
         break;
@@ -636,6 +638,8 @@ router.post('/tasks/:id/action', async (req, res) => {
             agent.stats.tasksFailed = (agent.stats.tasksFailed || 0) + 1;
             wss.sendAgentUpdate(agent);
           }
+          // 记录任务失败指标
+          agentMetrics.recordTaskFailed(task.assignedTo, task.taskId);
         }
         wss.sendTaskUpdate(task);
         break;
